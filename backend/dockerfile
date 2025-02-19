@@ -1,0 +1,44 @@
+# Use an official Python runtime as a base image
+FROM python:3.9.13-slim-buster
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Set environment variables
+RUN addgroup python && adduser --gecos "" --disabled-password --uid=9001 --ingroup=python python
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH="." \
+    PATH="${PATH}:/home/python/.local/bin"
+
+# Install linux dependencies
+RUN apt-get update \
+    && apt-get install -y \
+        curl \
+        wget \
+        dumb-init \
+        gcc \
+        g++ \
+        libpq-dev \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && chown -R python:python /app
+
+# Install Poetry 1.8.3
+RUN curl -sSL https://install.python-poetry.org | POETRY_HOME="/home/python/.local" python3 - --version 1.8.3
+ENV PATH="/home/python/.poetry/bin:${PATH}"
+
+# Install Python dependencies
+COPY --chown=python:python poetry.lock pyproject.toml /app/
+RUN poetry config virtualenvs.create false
+RUN poetry install --no-interaction --no-ansi
+
+# Copy entrypoint file and grant privilege
+COPY entrypoint.sh .
+RUN chmod +x /app/entrypoint.sh
+
+# Convert line endings from Windows (CRLF) to Unix (LF)
+RUN sed -i 's/\r$//' /app/entrypoint.sh
+
+# Change user and group owner
+RUN chown python:python /app/

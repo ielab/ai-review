@@ -1,0 +1,141 @@
+* {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.p-component,
+.p-inputtext {
+  font-family: inherit;
+}
+
+.p-inputtext:disabled {
+  @apply tw-opacity-100;
+}
+
+.p-password > .p-inputtext {
+  @apply tw-w-full;
+}
+
+.p-menubar {
+  @apply tw-flex tw-justify-end;
+  border-radius: 0%;
+  width: 100%;
+  z-index: 100 !important;
+}
+
+.p-menuitem-link {
+  color: white;
+}
+
+.p-submenu-list .p-menuitem-link {
+  color: black !important;
+}
+
+.p-submenu-list:hover .p-menuitem-link:hover {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.p-submenu-list {
+  border-radius: 5px;
+}
+
+.p-menuitem-link:hover,
+.p-menuitem-content:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 5px;
+  color: white;
+}
+
+body {
+  margin: 0;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+code {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.p-inputtext:disabled,
+.pi-input-icon {
+  color: black;
+}
+
+.iframe-background {
+  position: relative;
+  width: 100%; /* Set the width to 100% of the viewport width */
+  height: 550px; /* Set the desired height */
+  overflow: hidden;
+}
+
+.iframe-background iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%; /* Set the width to 100% of the container */
+  height: 100%; /* Set the height to 100% of the container */
+  border: none;
+}
+
+.text-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+}
+
+.text-overlay h1 {
+  font-size: 36px;
+  margin: 0;
+}
+
+.iframe {
+  width: 100%;
+  height: 0;
+  padding-bottom: 56%;
+  position: relative;
+}
+
+.dark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 0.5;
+}
+
+.simple-button {
+  background-color: transparent;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.borders {
+  position: relative;
+  border: 5px solid #f00;
+}
+
+.borders:before {
+  content: " ";
+  position: absolute;
+  z-index: -1;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border: 5px solid #ffea00;
+}
+
+.p-progress-spinner-circle {
+  stroke: #a855f7 !important;
+}
+
+.border {
+  border: solid;
+  border-width: 0.05rem !important;
+  border-color: #e5e7eb;
+}
