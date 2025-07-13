@@ -1,0 +1,15 @@
+**__pycache__
+.env**
+!.env.example
+logs
+**.log
+mnt/
+home/
+
+**/user-corpus*
+**.pem
+.vscode
+
+api_test.py
+test_performance.py
+test.py

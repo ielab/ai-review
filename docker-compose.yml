@@ -1,62 +1,57 @@
-version: '3.9'
-
-x-celery-common:
-  &celery-common
-  image: dense_review_backend_image
+x-celery-common: &celery-common
+  image: ai_review_backend_image
   restart: always
   working_dir: /app/backend/src
   volumes:
-      - ./backend/:/app/backend/
-      - ./logs/:/app/backend/src/logs
-      - ./user-corpus:/app/backend/src/user-corpus
-      - /home/ubuntu/:/app/backend/src/app_utils/
+    - ./backend/:/app/backend/
+    - ./logs/:/app/backend/src/logs
+    - ./user-corpus:/app/backend/src/user-corpus
+    - /home/ubuntu/max:/app/backend/src/app_utils/max
   env_file:
     - ./backend/src/.env
   depends_on:
-    rabbitmq:
+    redis:
       condition: service_healthy
 
 services:
   # Nginx
   frontend:
-    container_name: dense_review_frontend
+    container_name: ai_review_frontend
     image: nginx:1.26.2
     restart: unless-stopped
     ports:
       - 80:80
       - 443:443
-    env_file:
-      - ./backend/src/.env
     volumes:
-      - ./frontend/dist:/var/www/dense_review
+      - ./frontend/dist:/var/www/ai_review
       - ./nginx_conf.d/:/etc/nginx/conf.d/
       - ./certs/:/etc/ssl/certs
-      - ./user-corpus:/mnt/user-corpus
 
   # Backend
   backend:
-    container_name: dense_review_backend
-    image: dense_review_backend_image
-    restart: unless-stopped
+    container_name: ai_review_backend
+    image: ai_review_backend_image
+    # restart: unless-stopped
     build:
       context: ./backend
       dockerfile: dockerfile
     ports:
-      - 8001:8000
+      - 8000:8000
     volumes:
       - ./backend/:/app/backend/
       - ./logs/:/app/backend/src/logs
       - ./user-corpus:/app/backend/src/user-corpus
-      - /home/ubuntu/:/app/backend/src/app_utils/
+      # - /home/ubuntu/max:/app/backend/src/app_utils/max
     env_file:
       - ./backend/src/.env
     depends_on:
       - postgres_db
+      - redis
     entrypoint: ["bash", "/app/entrypoint.sh"]
-    
+
   # Database
   postgres_db:
-    container_name: dense_review_db
+    container_name: ai_review_db
     image: postgres:13.16
     restart: unless-stopped
     env_file:
@@ -66,64 +61,25 @@ services:
     ports:
       - 5432:5432
 
-  # Broker
-  rabbitmq:
-    container_name: dense_review_broker
-    image: rabbitmq:3.12.12-management
-    restart: always
-    ports:
-      - 5673:5672
-      - 15673:15672
-    volumes:
-      - ./backend/src/rabbitmq_plugins:/etc/rabbitmq/rabbitmq_plugins
-      - ./backend/src/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 5s
-      timeout: 10s
-      retries: 5
-    env_file:
-      - ./backend/src/.env
-    depends_on:
-      - backend
-
-  # Worker
-  celery_worker_1:
-    <<: *celery-common
-    container_name: dense_review_celery_worker_1
-    command: >
-      /bin/sh -c "celery -A dense_review worker --loglevel=info --logfile=/app/backend/src/logs/celery-worker-1.log -Q indexing_queue -c 1 -n celery-woker-1@%h;"
-    
-  celery_worker_2:
-    <<: *celery-common
-    container_name: dense_review_celery_worker_2
-    command: >
-      /bin/sh -c "celery -A dense_review worker --loglevel=info --logfile=/app/backend/src/logs/celery-worker-2%I.log -Q re_ranking_queue -c 1 -n celery-woker-2@%h;"
-  
-  # Websocket
-  websocket:
-    container_name: websocket_container
-    image: dense_review_backend_image
-    restart: unless-stopped
-    command: >
-      /bin/sh -c "cd /app/backend/src; python3 ws.py;"
-    ports:
-      - 8100:8100
-    volumes:
-      - ./backend/:/app/backend/
-    env_file:
-      - ./backend/src/.env
-    depends_on:
-      - redis
-
   # Redis
   redis:
-    container_name: redis_container
+    container_name: ai_review_redis
     image: redis:7.4.1
     restart: unless-stopped
-    expose: 
+    expose:
       - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery_worker:
+    <<: *celery-common
+    container_name: ai_review_celery_worker
+    command:
+      ["celery", "-A", "ai_review.celery_worker", "worker", "--loglevel=info"]
 
 volumes:
   db_volume:
-    name: dense_review_db_volume
+    name: ai_review_db_volume

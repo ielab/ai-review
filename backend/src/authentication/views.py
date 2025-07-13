@@ -4,6 +4,9 @@ from django.shortcuts import render
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate, login
+from django.db.models import Q
+
+from ai_review.celery_worker import send_otp_email
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -12,96 +15,187 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from account.models import User
-
 from account.serailizers import AccountSerializer
 from .utils import WrongCredential
 from .error import CustomError, CustomErrorAsDict
 
+import json
+
+import redis
+
+redis_client = redis.StrictRedis(host="redis", port=6379, db=0)
+
 import logging
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-class SignUp(APIView):
-
+class RequestOTPView(APIView):
     def post(self, request):
-        """
-        Register new user
-            @param username: string
-            @param password: string
-            @param confirm_password: string
-            @param email: string
-            @param confirm_email: string
-        """
-        username = request.data.get("username")
-        password = request.data.get("password")
-        confirm_password = request.data.get("confirm_password")
-        email = request.data.get("email")
-        confirm_email = request.data.get("confirm_email")
-
         try:
+            email = request.data.get("email")
+            key = request.data.get("key")
 
-            # Check matching password
-            if password != confirm_password:
-                raise CustomErrorAsDict(
-                    {
-                        "error": "Password does not match",
-                    }
-                )
+            # Validation
+            valid_keys = ["sign_up_otp", "reset_password_otp", "log_in_otp"]
+            if key not in valid_keys:
+                raise CustomErrorAsDict({"error": "Invalid OTP key"})
 
-            # Check matching email
-            if email != confirm_email:
-                raise CustomErrorAsDict(
-                    {
-                        "error": "Email does not match",
-                    }
-                )
+            if key == "sign_up_otp":
+                username = request.data.get("username")
+                password = request.data.get("password")
+                confirm_password = request.data.get("confirm_password")
+                confirm_email = request.data.get("confirm_email")
 
-            # Check password
-            if password != confirm_password:
-                raise CustomErrorAsDict(
-                    {
-                        "error": "Password does not match",
-                    }
-                )
+                if User.objects.filter(username=username).exists():
+                    raise CustomErrorAsDict({"error": "Username is already taken"})
+                if User.objects.filter(email=email).exists():
+                    raise CustomErrorAsDict({"error": "Email is already taken"})
+                if email != confirm_email:
+                    raise CustomErrorAsDict({"error": "Email does not match"})
+                if password != confirm_password:
+                    raise CustomErrorAsDict({"error": "Password does not match"})
 
-            # Check email
-            if email != confirm_email:
-                raise CustomErrorAsDict(
-                    {
-                        "error": "Email does not match",
-                    }
-                )
+            else:
+                get_object_or_404(User, email=email)
 
-            # Check if username is already taken
-            if User.objects.filter(username=username).exists():
-                raise CustomErrorAsDict(
-                    {
-                        "error": "Username is already taken",
-                    }
-                )
+            # Delete any existing OTP for the user and key
+            redis_client.delete(f"{key}:{email}")
 
-            # Create user
-            User.objects.create_user(username, email, password)
-
-            logging.info(f"User {username} registered.")
-            return JsonResponse({"message": "OK"}, status=status.HTTP_200_OK)
-
-        except CustomErrorAsDict as error:
-            logging.error(f"Invalid registration: {error.error}")
-            return JsonResponse(
-                {
-                    "error": error.error,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            send_otp_email(email, key)
+            return Response(
+                {"message": "OTP sent to your email"}, status=status.HTTP_200_OK
             )
 
+        except Http404:
+            logger.error(f"User not found")
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except CustomErrorAsDict as error:
+            logger.error(f"Invalid requesting OTP: {error.error}")
+            return Response({"error": error.error}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as error:
-            logging.error(f"Error while registering user: {str(error)}")
-            return JsonResponse(
-                {
-                    "error": "Internal server error",
-                },
+            logger.error(f"Error while requesting OTP: {str(error)}")
+            return Response(
+                {"error": "Internal server error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ValidateOTPView(APIView):
+    def post(self, request):
+        try:
+            email = request.data.get("email")
+            key = request.data.get("key")
+            otp = request.data.get("otp")
+
+            # Validation
+            valid_keys = ["sign_up_otp", "reset_password_otp", "log_in_otp"]
+            if key not in valid_keys:
+                raise CustomErrorAsDict({"error": "Invalid OTP key"})
+
+            otp_data = redis_client.get(f"{key}:{email}").decode("utf-8")
+            if not otp_data:
+                raise CustomErrorAsDict({"error": "Invalid OTP or OTP has expired"})
+            if otp_data != otp:
+                raise CustomErrorAsDict({"error": "Invalid OTP"})
+
+            if key == "sign_up_otp":
+                username = request.data.get("username")
+                password = request.data.get("password")
+                User.objects.create_user(username, email, password)
+
+                # Delete any existing OTP for the user and key
+                redis_client.delete(f"{key}:{email}")
+                return Response(
+                    {"message": "User verify OTP for sign up successfully"},
+                    status=status.HTTP_200_OK,
+                )
+
+            elif key == "reset_password_otp":
+                return Response(
+                    {"message": "User verify OTP for reset password successfully"},
+                    status=status.HTTP_200_OK,
+                )
+
+            else:
+                user = get_object_or_404(User, email=email)
+                login(request, user)
+
+                if not user:
+                    raise WrongCredential("Wrong credential")
+
+                # Create token for user
+                token_obj = Token.objects.get_or_create(user=user)[0]
+
+                # Delete any existing OTP for the user and key
+                redis_client.delete(f"{key}:{email}")
+
+                logger.info(f"{user.username} login success using identifier({email}).")
+                return JsonResponse({"token": token_obj.key}, status=status.HTTP_200_OK)
+
+        except Http404:
+            logger.error("User not found")
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except CustomErrorAsDict as error:
+            logger.error(f"Invalid validation OTP: {error.error}")
+            return Response({"error": error.error}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as error:
+            logger.error(f"Error while validation OTP: {str(error)}")
+            return Response(
+                {"error": "Internal server error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ResetPassword(APIView):
+    def post(self, request):
+        try:
+            email = request.data.get("email")
+            password = request.data.get("password")
+            confirm_password = request.data.get("confirm_password")
+            otp = request.data.get("otp")
+            key = request.data.get("key")
+
+            # Validation
+            if key != "reset_password_otp":
+                raise CustomErrorAsDict({"error": "Invalid OTP key"})
+
+            if password != confirm_password:
+                raise CustomErrorAsDict({"error": "Password does not match"})
+
+            otp_data = redis_client.get(f"{key}:{email}").decode("utf-8")
+            if not otp_data:
+                raise CustomErrorAsDict({"error": "Invalid OTP or OTP has expired"})
+            if otp_data != otp:
+                raise CustomErrorAsDict({"error": "Invalid OTP"})
+
+            user = get_object_or_404(User, email=email)
+            user.set_password(password)
+            user.save()
+
+            # Delete any existing OTP for the user and key
+            redis_client.delete(f"{key}:{email}")
+
+            return Response(
+                {"message": "Reset password successfully"}, status=status.HTTP_200_OK
+            )
+
+        except Http404:
+            logger.error("User not found")
+            return Response(
+                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except CustomErrorAsDict as error:
+            logger.error(f"Invalid reset password: {error.error}")
+            return Response({"error": error.error}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as error:
+            logger.error(f"Error while reset password: {str(error)}")
+            return Response(
+                {"error": "Internal server error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -112,85 +206,68 @@ class Login(APIView):
     def post(self, request):
         """
         Login user
-            @param identifier: string
+            @param identifier: string (username or email)
             @param password: string
         """
         identifier = request.data.get("identifier")
         password = request.data.get("password")
 
-        try:
-            # Check if identifier and password are provided
-            if not identifier or not password:
-                raise CustomError("Invalid authentication data")
-
-            # Get the account_user object by the type of identifier
-            if "@" in identifier:
-                account_user_obj = get_object_or_404(User, email=identifier)
-            else:
-                account_user_obj = get_object_or_404(User, username=identifier)
-
-            # Check if user is active
-            if not account_user_obj.is_active:
-                raise CustomErrorAsDict(
-                    {
-                        "error": "User is not active",
-                    }
-                )
-
-            # Authenticate user
-            user = authenticate(
-                request, username=account_user_obj.get_username(), password=password
-            )
-            
-            # Loging
-            login(request, user)
-
-            if not user:
-                raise WrongCredential("Wrong credential")
-
-            # Create token for user
-            token_obj = Token.objects.get_or_create(user=user)[0]
-
-            logging.info(f"{account_user_obj.username} login success using identifier({identifier}).")
-            return JsonResponse({"token": token_obj.key}, status=status.HTTP_200_OK)
-
-        except (CustomError, Http404, WrongCredential) as error:
-            logging.info(f"identifier({identifier}) login failed: {str(error)}")
-
-            if type(error) == Http404:
-                response_status = status.HTTP_404_NOT_FOUND
-                response_message = "Username, email, or password is incorrect"
-
-            elif type(error) == WrongCredential:
-                response_status = status.HTTP_404_NOT_FOUND
-                response_message = "Username, email, or password is incorrect"
-
-            else:
-                response_status = status.HTTP_400_BAD_REQUEST
-                response_message = str(error)
-
-            return JsonResponse(
-                {
-                    "error": response_message,
-                },
-                status=response_status,
-            )
-
-        except CustomErrorAsDict as error:
-            logging.info(f"identifier({identifier}) login failed: {str(error)}")
-            return JsonResponse(
-                {
-                    "error": error.error,
-                },
+        # Validate input
+        if not identifier or not password:
+            logger.info(f"Login failed: Missing identifier or password")
+            return Response(
+                {"error": "Both identifier and password are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        try:
+            # Try to find user by username or email
+            try:
+                user = User.objects.filter(
+                    Q(username=identifier) | Q(email=identifier)
+                ).first()
+                if not user:
+                    raise WrongCredential("Invalid username or email")
+            except User.DoesNotExist:
+                raise WrongCredential("Invalid username or email")
+
+            # Check if user is active
+            if not user.is_active:
+                logger.info(f"Login failed for {identifier}: User is inactive")
+                return Response(
+                    {"error": "User account is not active"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Authenticate user
+            user = authenticate(request, username=user.username, password=password)
+            if not user:
+                logger.info(f"Login failed for {identifier}: Incorrect password")
+                return Response(
+                    {"error": "Incorrect password"}, status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            # Login user
+            login(request, user)
+
+            # Create or retrieve token
+            token, _ = Token.objects.get_or_create(user=user)
+
+            logger.info(
+                f"Login successful for {user.username} using identifier {identifier}"
+            )
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
+
+        except WrongCredential as error:
+            logger.info(f"Login failed for {identifier}: {str(error)}")
+            return Response({"error": str(error)}, status=status.HTTP_401_UNAUTHORIZED)
+
         except Exception as error:
-            logging.exception(f"Error while identifier({identifier}) trying to login: {str(error)}")
-            return JsonResponse(
-                {
-                    "error": "Internal server error",
-                },
+            logger.exception(
+                f"Unexpected error during login for {identifier}: {str(error)}"
+            )
+            return Response(
+                {"error": "Internal server error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -206,11 +283,11 @@ class Logout(APIView):
             request.user.auth_token.delete()
 
             username = request.user.username
-            logging.info(f"{username} logged out.")
+            logger.info(f"{username} logged out.")
             return Response(status=status.HTTP_200_OK)
 
         except Exception as error:
-            logging.exception(f"Error while logging out: {str(error)}")
+            logger.exception(f"Error while logger out: {str(error)}")
             return JsonResponse(
                 {
                     "error": "Internal server error",
@@ -238,7 +315,7 @@ class CurrentUser(APIView):
             return JsonResponse(AccountSerializer(request.user).data)
 
         except Exception as error:
-            logging.exception(f"Error while getting current user: {str(error)}")
+            logger.exception(f"Error while getting current user: {str(error)}")
             return JsonResponse(
                 {
                     "error": "Internal server error",

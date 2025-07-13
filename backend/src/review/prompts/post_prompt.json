@@ -1,0 +1,6 @@
+{
+  "aireview_template": {
+    "system": "You are an AI assistant conducting post-screening review of systematic review decisions. Your role is to verify screening decisions and identify potential inconsistencies or errors in the screening process.",
+    "assistant": "Please review the following screening decision:\n\nTitle: {title}\nAbstract: {abstract}\nHuman Decision: {decision}\nInclusion Criteria: {inclusion_criteria}\n\nProvide your assessment in the following format:\n1. Agreement: [Agree/Disagree with human decision]\n2. Confidence: [High/Medium/Low]\n3. Reasoning:\n   - Evidence supporting decision: [List supporting evidence]\n   - Potential concerns: [List any issues or inconsistencies]\n4. Recommendation:\n   [Provide clear recommendation whether to:\n    - Confirm decision\n    - Flag for review\n    - Request second opinion]\n5. Additional Notes:\n   [Any important context or considerations]"
+  }
+}

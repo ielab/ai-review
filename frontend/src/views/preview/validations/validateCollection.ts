@@ -1,14 +1,14 @@
 import Joi from 'joi'
 
-export const validateCollection = (collectionName: string) => {
+export const validateCollection = (reviewName: string) => {
   return Joi.string()
     .required()
     .max(150)
     .messages({
-      'string.base': 'Collection name must be a string',
-      'string.empty': 'Collection name is required',
-      'string.max': 'Collection name must be less than 150 characters',
-      'any.required': 'Collection name is required',
+      'string.base': 'Dataset/Review name must be a string',
+      'string.empty': 'Dataset/Review name is required',
+      'string.max': 'Dataset/Review name must be less than 150 characters',
+      'any.required': 'Dataset/Review name is required',
     })
-    .validate(collectionName)
+    .validate(reviewName)
 }

@@ -1,13 +1,20 @@
 import { ref } from 'vue'
 
+import { IUploadedCorpus } from '@/types/corpus'
+import { DEFAULT_UPLOADED_CORPUS } from '@/defaults/corpus'
+
 interface IUploadCollectionFilesStore {
-  corpus: File | null
-  queries: File | null
+  file: File | null
+  corpus: IUploadedCorpus
+  inclusionCriteria: string[]
+  totalDocuments: number
 }
 
 const DEFAULT_UPLOAD_COLLECTION_FILES_STORE: IUploadCollectionFilesStore = {
-  corpus: null,
-  queries: null,
+  file: null,
+  corpus: { ...DEFAULT_UPLOADED_CORPUS },
+  inclusionCriteria: [],
+  totalDocuments: 0,
 }
 
 export const uploadCollectionFilesStore = ref<IUploadCollectionFilesStore>({
@@ -15,5 +22,7 @@ export const uploadCollectionFilesStore = ref<IUploadCollectionFilesStore>({
 })
 
 export function clearUploadCollectionFilesStore() {
-  uploadCollectionFilesStore.value = { ...DEFAULT_UPLOAD_COLLECTION_FILES_STORE }
+  uploadCollectionFilesStore.value = {
+    ...DEFAULT_UPLOAD_COLLECTION_FILES_STORE,
+  }
 }

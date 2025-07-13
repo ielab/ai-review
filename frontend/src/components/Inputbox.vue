@@ -6,13 +6,23 @@
         <i v-if="mandatory" class="tw-text-rose-400"> *</i>
       </div>
       <div class="tw-flex tw-justify-center tw-items-center tw-w-full">
-        <InputText v-if="type == 'text'" v-model="value" :disabled="disabled" class="tw-w-full" />
+        <InputText
+          v-if="type == 'text'"
+          v-model="value"
+          :disabled="disabled"
+          class="tw-w-full"
+        />
         <Password
           v-else-if="type == 'password'"
           v-model="value"
           :disabled="disabled"
           :feedback="feedback"
           class="tw-w-full"
+          toggleMask
+          :pt="{
+            hideIcon: 'tw-translate-y-[-50%]',
+            showIcon: 'tw-translate-y-[-50%]',
+          }"
         />
         <Dropdown
           v-else-if="type == 'dropdown'"
@@ -32,11 +42,21 @@
         />
         <template v-else-if="type == 'collapse_textArea'">
           <span v-if="!expand" class="p-input-icon-right tw-w-full">
-            <i class="pi pi-chevron-down tw-cursor-pointer" @click="expand = !expand" />
-            <InputText :value="shortValue" class="tw-w-full" :disabled="disabled" />
+            <i
+              class="pi pi-chevron-down tw-cursor-pointer"
+              @click="expand = !expand"
+            />
+            <InputText
+              :value="shortValue"
+              class="tw-w-full"
+              :disabled="disabled"
+            />
           </span>
           <span v-if="expand" class="p-input-icon-right tw-w-full">
-            <i class="pi pi-chevron-up tw-cursor-pointer" @click="expand = !expand" />
+            <i
+              class="pi pi-chevron-up tw-cursor-pointer"
+              @click="expand = !expand"
+            />
             <Textarea
               :value="value"
               v-model="model"
@@ -59,8 +79,15 @@
         <template v-if="type === 'codeblock'">
           <div class="tw-w-full">
             <span v-if="!expand" class="p-input-icon-right tw-w-full">
-              <i class="pi pi-chevron-down tw-cursor-pointer" @click="expand = !expand" />
-              <InputText :value="shortValue" class="tw-w-full" :disabled="disabled" />
+              <i
+                class="pi pi-chevron-down tw-cursor-pointer"
+                @click="expand = !expand"
+              />
+              <InputText
+                :value="shortValue"
+                class="tw-w-full"
+                :disabled="disabled"
+              />
             </span>
             <div
               v-else
@@ -86,25 +113,30 @@
             @click="!isLoading && handleDownload(id)"
           ></i>
         </template>
-        <Button v-if="downloadBtn" label="Download" icon="pi pi-download" class="tw-ml-5" />
+        <Button
+          v-if="downloadBtn"
+          label="Download"
+          icon="pi pi-download"
+          class="tw-ml-5"
+        />
       </div>
     </div>
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, computed, PropType } from 'vue'
+import { ref, computed, PropType } from "vue";
 
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
-import Dropdown from 'primevue/dropdown'
-import Textarea from 'primevue/textarea'
-import InputGroup from 'primevue/inputgroup'
-import Button from '@/components/Button.vue'
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
+import Dropdown from "primevue/dropdown";
+import Textarea from "primevue/textarea";
+import InputGroup from "primevue/inputgroup";
+import Button from "primevue/button";
 
-const model = ref()
+const model = ref();
 const props = defineProps({
   id: { type: [String, Number] },
-  type: { type: String, default: 'text' },
+  type: { type: String, default: "text" },
   label: { type: String, default: undefined },
   mandatory: { type: Boolean, default: false },
   feedback: { type: Boolean, default: false },
@@ -117,38 +149,43 @@ const props = defineProps({
   colTable: { type: Object },
   dropdownOptions: { type: Array as PropType<{ label: string; value: any }[]> },
   isLoading: { type: Boolean, default: false },
-})
-const emit = defineEmits(['update:modelValue', 'download'])
+});
+const emit = defineEmits(["update:modelValue", "download"]);
 
 const value: any = computed({
   get() {
-    return props.modelValue
+    return props.modelValue;
   },
   set(val) {
-    emit('update:modelValue', val)
+    emit("update:modelValue", val);
   },
-})
+});
 
-const expand = ref(props.isExpand)
+const expand = ref(props.isExpand);
 
-const handleDownload = (id: string | number | undefined, node: any = undefined) => {
-  emit('download', id, node)
-}
+const handleDownload = (
+  id: string | number | undefined,
+  node: any = undefined
+) => {
+  emit("download", id, node);
+};
 
 const shortValue = computed(() => {
-  return value.value.length >= 80 ? (value.value as string).substring(0, 80) + '...' : value.value
-})
+  return value.value.length >= 80
+    ? (value.value as string).substring(0, 80) + "..."
+    : value.value;
+});
 
 /**
  * Beautify and highlight the code block
  */
 
-import hljs from 'highlight.js'
-import hlJSON from 'highlight.js/lib/languages/json'
+import hljs from "highlight.js";
+import hlJSON from "highlight.js/lib/languages/json";
 
-hljs.registerLanguage('json', hlJSON)
+hljs.registerLanguage("json", hlJSON);
 
 const beautify = (value: string) => {
-  return hljs.highlight(value, { language: 'json' })
-}
+  return hljs.highlight(value, { language: "json" });
+};
 </script>

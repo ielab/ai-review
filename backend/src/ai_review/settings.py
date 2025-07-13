@@ -199,7 +199,8 @@ LOGGING = {
 }
 
 # Local storage coupus real path
-REAL_CORPUS_PATH = "/app/backend/src/user-corpus"
+REAL_CORPUS_PATH = "/opt/temp-ai-review/user-corpus"
+MOUNT_CORPUS_PATH = "/app/backend/src/user-corpus"
 
 # Bypass external service
 BYPASS_EXTERNAL_SERVICE = env('BYPASS_EXTERNAL_SERVICE')

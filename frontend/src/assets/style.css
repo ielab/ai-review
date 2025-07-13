@@ -8,10 +8,6 @@
   font-family: inherit;
 }
 
-.p-inputtext:disabled {
-  @apply tw-opacity-100;
-}
-
 .p-password > .p-inputtext {
   @apply tw-w-full;
 }
@@ -48,16 +44,11 @@
 
 body {
   margin: 0;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
 code {
-  font-family: 'IBM Plex Sans', sans-serif;
-}
-
-.p-inputtext:disabled,
-.pi-input-icon {
-  color: black;
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
 .iframe-background {
@@ -77,17 +68,13 @@ code {
 }
 
 .text-overlay {
+  width: 55%;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
   color: white;
-}
-
-.text-overlay h1 {
-  font-size: 36px;
-  margin: 0;
 }
 
 .iframe {
@@ -134,8 +121,40 @@ code {
   stroke: #a855f7 !important;
 }
 
+/* .p-inline-message.p-inline-message-success {
+  @apply hover:!tw-bg-[#dbf8e4] !tw-transition-all;
+} */
+
+.p-inline-message.p-inline-message-error {
+  @apply !tw-bg-[#FEF3F3];
+  /* hover:!tw-bg-[#FCDBDB] !tw-transition-all */
+}
+
 .border {
   border: solid;
   border-width: 0.05rem !important;
   border-color: #e5e7eb;
+}
+
+.fade-in-top {
+  opacity: 0;
+  transform: translateY(-20px); /* Start slightly above its final position */
+  transition: opacity 1s ease-out, transform 1s ease-out; /* Smooth transition */
+}
+
+.fade-in-top.active {
+  opacity: 1;
+  transform: translateY(0); /* Move to its final position */
+}
+
+.otp-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.otp-box {
+  width: 3.75rem;
+  text-align: center;
+  font-size: 1.5rem;
 }

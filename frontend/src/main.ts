@@ -25,14 +25,16 @@ import "./assets/custom-primevue.css";
 import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 import ConfirmationService from "primevue/confirmationservice";
+import Ripple from 'primevue/ripple';
 
 // Custom CSS
 import "./assets/style.css";
 
 createApp(App)
   .use(router)
-  .use(PrimeVue)
+  .use(PrimeVue, { ripple: true })
   .use(ToastService)
   .use(ConfirmationService)
   .directive("tooltip", Tooltip)
+  .directive('ripple', Ripple)
   .mount("#app");

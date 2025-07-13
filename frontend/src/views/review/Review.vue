@@ -1,283 +1,307 @@
 <template>
-  <div class="tw-flex tw-flex-col tw-px-4 tw-bg-slate-50 tw-min-h-[94vh]">
-    <div class="tw-flex tw-gap-2 tw-bg-slate-50 tw-pb-5">
-      <div
-        class="tw-h-full tw-flex tw-flex-col tw-gap-4"
-        :class="visibleChat ? 'tw-w-[70%]' : 'tw-w-full'"
-      >
-        <div
-          v-if="!visibleChat"
-          class="tw-fixed tw-z-[100] tw-top-[3.8rem] tw-right-3"
-        >
-          <Button
-            v-tooltip.left="`Expand SR Assistant Panel`"
-            @click="updateVisibleChat(true)"
-            icon="pi pi-sparkles"
-            rounded
-            class="tw-border-[0.2rem] tw-border-white tw-shadow"
-          />
-        </div>
-        <ScrollPanel
-          :pt="{
-            bary: 'tw-bg-purple-500',
-          }"
-          class="tw-w-full"
-        >
-          <div class="tw-flex tw-flex-col tw-gap-4 tw-pl-1 tw-pr-4 tw-py-4">
-            <p
-              class="tw-text-xl tw-text-center tw-font-bold tw-items-center tw-flex tw-justify-center"
-            >
-              Bayesian PTSD-Trajectory Analysis with Informed Priors<br />Based
-              on a Systematic Literature Search and Expert Elicitation
-            </p>
-            <div
-              v-for="(article, index) in articles.slice(0, 25)"
-              @click="selectCard(index)"
-              class="screening-card"
-            >
-              <ScreeningCard
-                v-if="!isLoading"
-                :key="index"
-                :index="index"
-                class="tw-border-[0.05rem] tw-border-neutral-200 tw-bg-slate-50 tw-w-full"
-                style="border: solid"
-                :article="article"
-                :selected="selectedCard === index"
-                :showKeysGuide="showKeysGuide"
-              />
-            </div>
-          </div>
-        </ScrollPanel>
-      </div>
-      <div
-        v-if="visibleChat"
-        class="tw-w-[30%] tw-flex tw-flex-col tw-shadow tw-bg-white tw-h-[94vh] tw-fixed tw-z-[100] tw-right-0"
-      >
-        <div class="tw-px-4 tw-py-2 tw-flex tw-justify-between tw-items-center">
-          <CustomIconButton
-            v-tooltip.left="`Collapse SR Assistant Panel`"
-            icon="pi pi-angle-double-right"
-            class="tw-absolute tw-left-[-1.6rem] tw-top-0 tw-rounded-none"
-            size="small"
-            @click="updateVisibleChat(false)"
-          />
-          <h3 class="tw-text-slate-600">SR Assistant</h3>
-
-          <div class="tw-flex tw-flex tw-flex-col tw-text-xs tw-items-center">
-            <div class="tw-flex tw-items-center tw-gap-1">
-              <p class="tw-font-medium">AI Role</p>
-              <i class="pi pi-info-circle tw-scale-[0.9] tw-text-indigo-500" />
-            </div>
-            <div class="tw-flex tw-items-center tw-gap-1">
-              <div class="tw-flex tw-h-[2rem] tw-items-center tw-gap-1">
-                <ToggleButton
-                  v-model="pre"
-                  onLabel="Pre"
-                  offLabel="Pre"
-                  :pt="{ root: 'tw-p-1 tw-text-xs' }"
-                  @update:modelValue="updateRole('pre')"
-                />
-                <p>/</p>
-                <ToggleButton
-                  v-model="co"
-                  onLabel="Co"
-                  offLabel="Co"
-                  :pt="{ root: 'tw-p-1 tw-text-xs' }"
-                  @update:modelValue="updateRole('co')"
-                />
-                <p>/</p>
-                <ToggleButton
-                  v-model="post"
-                  onLabel="Post"
-                  offLabel="Post"
-                  :pt="{ root: 'tw-p-1 tw-text-xs' }"
-                  @update:modelValue="updateRole('post')"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="tw-flex tw-flex tw-flex-col tw-text-xs tw-items-center">
-            <div class="tw-flex tw-items-center tw-gap-1">
-              <p class="tw-font-medium">AI Interaction</p>
-              <i class="pi pi-info-circle tw-scale-[0.9] tw-text-indigo-500" />
-            </div>
-            <div class="tw-flex tw-items-center tw-gap-1">
-              <p
-                :class="
-                  !high
-                    ? 'tw-text-indigo-500 tw-font-medium'
-                    : 'tw-text-gray-400'
-                "
-              >
-                Low
-              </p>
-              <div class="tw-h-[2rem]">
-                <InputSwitch
-                  v-model="high"
-                  class="tw-scale-[0.8]"
-                  @update:modelValue="updateLevel()"
-                />
-              </div>
-              <p
-                :class="
-                  high
-                    ? 'tw-text-indigo-500 tw-font-medium'
-                    : 'tw-text-gray-400'
-                "
-              >
-                High
-              </p>
-            </div>
-          </div>
-        </div>
-        <TabView
-          :pt="{
-            nav: '!tw-bg-white',
-            panelContainer: 'tw-p-0 tw-bg-transparent',
-          }"
-        >
-          <TabPanel
-            :pt="{ headerAction: '!tw-w-full !tw-py-2 !tw-px-4 !tw-bg-white' }"
-          >
-            <template #header>
-              <div class="tw-flex tw-items-center tw-gap-2 tw-font-medium">
-                <i class="pi pi-comment" />
-                Chat
-              </div>
-            </template>
-            <Chat />
-          </TabPanel>
-          <TabPanel
-            :pt="{ headerAction: '!tw-w-full !tw-py-2 !tw-px-4 !tw-bg-white' }"
-          >
-            <template #header>
-              <div class="tw-flex tw-items-center tw-gap-2 tw-font-medium">
-                <i class="pi pi-sliders-v" />
-                Model Config
-              </div>
-            </template>
-            <ModelConfig />
-          </TabPanel>
-          <TabPanel
-            :pt="{ headerAction: '!tw-w-full !tw-py-2 !tw-px-4 !tw-bg-white' }"
-          >
-            <template #header>
-              <div class="tw-flex tw-items-center tw-gap-2 tw-font-medium">
-                <i class="pi pi-bookmark" />
-                Prompts
-              </div>
-            </template>
-            <Prompts />
-          </TabPanel>
-        </TabView>
-      </div>
-    </div>
+  <div
+    v-if="state.initLoading || isLoading"
+    class="tw-flex tw-h-[94vh] tw-bg-primary-100"
+  >
+    <Loading severity="primary" />
   </div>
+
+  <div v-else class="tw-flex tw-h-[94vh] tw-bg-primary-100">
+    <div class="tw-flex-1">
+      <ScrollPanel style="width: 100%; height: 100%" :pt="{}">
+        <div
+          class="tw-sticky tw-top-0 tw-z-[1001] tw-p-4 tw-flex tw-items-center tw-justify-center tw-bg-primary-50/25 tw-backdrop-blur-sm"
+        >
+          <p class="tw-text-2xl tw-font-bold">{{ state.datasetName }}</p>
+          <div class="tw-absolute tw-right-0 tw-m-6 tw-gap-2 tw-flex">
+            <Button
+              rounded
+              outlined
+              icon="pi pi-pause"
+              severity="warning"
+              v-tooltip.bottom="'Pause'"
+              @click="updateReviewProgress('pause')"
+            />
+            <Button
+              rounded
+              outlined
+              icon="pi pi-stop"
+              severity="danger"
+              v-tooltip.bottom="state.post ? 'Post-Reviewer' : 'Finished'"
+              @click="handleDialogVisibleForFinishScreening()"
+            />
+          </div>
+        </div>
+        <div class="tw-flex tw-flex-col tw-gap-4 tw-px-4">
+          <div v-for="(doc, index) in state.docs" class="screening-card">
+            <ScreeningCard
+              class="tw-bg-slate-50 tw-w-full"
+              :index="index"
+              :doc="doc"
+              :selected="state.studyIndex === index"
+              :pre-response="state.pre ? state.preResponse[index] : undefined"
+              :state="state"
+              :ask-a-i-allowed="
+                canAskAI(state.config.pipeline_type, state.interactionLevel)
+              "
+              @ask-a-i="coProcess('ask_ai')"
+              @update:visible-chat="updateVisibleChat"
+              @update:study-index="updateStudyIndex"
+              @give-feedback="giveFeedback(state.studyIndex, $event)"
+            />
+          </div>
+        </div>
+        <div class="tw-flex tw-items-center tw-justify-center tw-p-2">
+          <Paginator
+            v-model:first="pageIndex"
+            :rows="1"
+            :totalRecords="1"
+            template="PrevPageLink CurrentPageReport NextPageLink"
+            :pt="{
+              root: 'tw-bg-transparent tw-p-0',
+              previousPageButton: 'tw-border-none',
+              nextPageButton: 'tw-border-none',
+            }"
+          />
+        </div>
+      </ScrollPanel>
+    </div>
+
+    <Button
+      v-if="!state.configLoading"
+      :icon="
+        state.visibleChat
+          ? 'pi pi-angle-double-right'
+          : 'pi pi-angle-double-left'
+      "
+      :pt="{
+        root: 'tw-shadow-none tw-h-24 tw-p-0 tw-w-5 tw-absolute tw-top-1/2 tw-translate-y-[-50%] tw-z-[100] tw-transition-all',
+      }"
+      :class="
+        state.visibleChat
+          ? 'tw-left-[70%]'
+          : 'tw-left-[100%] tw-translate-x-[-100%]'
+      "
+      @click="updateVisibleChat(!state.visibleChat)"
+    />
+
+    <AssistantPanel
+      :state="state"
+      @update:pre="state.pre = $event"
+      @update:co="state.co = $event"
+      @update:post="state.post = $event"
+      @update:interaction-level="state.interactionLevel = $event"
+      @p-i-c-o-extraction="coProcess('pico_extract')"
+      @detailed-reasoning="coProcess('detail_reason')"
+      @chat="chatClient($event, state.studyIndex)"
+    />
+  </div>
+
+  <Modal
+    v-model:is-active="readyToStartPostReview"
+    header="Ready to start post-review ?"
+    leftBtn="Back"
+    rightBtn="Confirm"
+    icon="pi pi-exclamation-circle"
+    iconColor="warning"
+    @confirm="updateReviewProgress('post_review')"
+  >
+    <template #body>
+      <div class="tw-flex tw-flex-col tw-gap-2">
+        <p>Please confirm that all studies have been screened.</p>
+        <p>Once confirmed, you’ll move on to the post-review stage.</p>
+      </div>
+    </template>
+  </Modal>
+
+  <Modal
+    v-model:is-active="completeScreeningBeforePostReview"
+    header="Complete screening before post-review"
+    leftBtn="Back"
+    icon="pi pi-exclamation-circle"
+    iconColor="warning"
+  >
+    <template #body>
+      <div class="tw-flex tw-flex-col tw-gap-2">
+        <p>You haven’t screened all studies yet.</p>
+        <p>Please assess every study before starting the post-review.</p>
+      </div>
+    </template>
+  </Modal>
+
+  <Modal
+    v-model:is-active="confirmToFinishYourScreening"
+    header="Confirm to finish your screening"
+    leftBtn="Back"
+    rightBtn="Confirm"
+    icon="pi pi-exclamation-circle"
+    iconColor="warning"
+    @confirm="updateReviewProgress('finish')"
+  >
+    <template #body>
+      <div class="tw-flex tw-flex-col tw-gap-2">
+        <p>Please confirm that all studies have been assessed.</p>
+        <p>
+          Once confirmed, you will no longer be able to edit assessments or use
+          the SR Assistant.
+        </p>
+      </div>
+    </template>
+  </Modal>
+
+  <Modal
+    v-model:is-active="unableToFinishScreening"
+    header="Unable to finish screening"
+    leftBtn="Back"
+    icon="pi pi-exclamation-circle"
+    iconColor="warning"
+  >
+    <template #body>
+      <div class="tw-flex tw-flex-col tw-gap-2">
+        <p>You haven’t assessed all studies.</p>
+        <p>Please complete the screening before finish.</p>
+      </div>
+    </template>
+  </Modal>
 </template>
 
+<style scoped>
+.p-button.p-button-warning,
+.p-button.p-button-danger {
+  background: white;
+}
+</style>
+
 <script lang="ts" setup>
-import Button from "primevue/button";
-import ToggleButton from "primevue/togglebutton";
-
-import Chat from "./components/Chat.vue";
-import ModelConfig from "./components/ModelConfig.vue";
-import Prompts from "./components/Prompts.vue";
-import TabView from "primevue/tabview";
-import TabPanel from "primevue/tabpanel";
+import Loading from "@/components/Loading.vue";
 import ScrollPanel from "primevue/scrollpanel";
-import InputSwitch from "primevue/inputswitch";
 import ScreeningCard from "./components/ScreeningCard.vue";
+import Paginator from "primevue/paginator";
+import AssistantPanel from "@/components/AssistantPanel.vue";
+import Modal from "@/components/Modal.vue";
+import Button from "primevue/button";
 
-import { ref, nextTick, onMounted } from "vue";
+import { ref, onMounted } from "vue";
+
+import { useRoute } from "vue-router";
+const route = useRoute();
+
+import { State } from "@/types/reviewer";
+import { DEFAULT_STATE } from "@/defaults/reviewer";
+const state = ref<State>(DEFAULT_STATE);
+
+import { canAskAI } from "@/utils/reviewer";
+
+import { useReview } from "@/composables/review";
+const {
+  getStudies,
+  coProcess,
+  updateVisibleChat,
+  updateStudyIndex,
+  isAllFeedbackTrue,
+  giveFeedback,
+  chatClient,
+} = useReview(state);
+
+import { useLLMConfig } from "@/composables/llmConfig";
+const { init } = useLLMConfig(state, route);
+
+const pageIndex = ref(0);
+
+onMounted(async () => {
+  state.value.initLoading = true;
+  await init();
+  state.value.initLoading = false;
+});
+
+// --------------------------------
+
+import axios, { AxiosError } from "axios";
+import { getTokenHeader } from "@/utils/auth";
+
+import { useError } from "@/composables/error";
+const { getResponseErrorMessage } = useError();
 
 import { useLoading } from "@/composables/loading";
-const { isLoading } = useLoading(false);
+const { setLoading, isLoading } = useLoading(false);
 
-// import { useDirty } from "@/composables/dirty";
+import { useToast } from "@/composables/toast";
+import router from "@/router";
+const { showToast } = useToast();
 
-import { reviewerStore } from "@/stores/reviewer";
-import { storeReviewer } from "@/utils/reviewer";
+const readyToStartPostReview = ref(false);
+const completeScreeningBeforePostReview = ref(false);
+const confirmToFinishYourScreening = ref(false);
+const unableToFinishScreening = ref(false);
 
-// dummy
-import articles from "./configs/data.json";
-import CustomIconButton from "@/components/CustomIconButton.vue";
-
-const showKeysGuide = ref(true);
-const visibleChat = ref(reviewerStore.visibleChat);
-
-// selecting article
-const selectedCard = ref<number | null>(0);
-const selectCard = (index: number) => {
-  selectedCard.value = selectedCard.value === index ? null : index;
-  scrollToSelectedCard(index);
-};
-
-const scrollToSelectedCard = (index: number | null) => {
-  if (index !== null) {
-    nextTick(() => {
-      const cardElement = document.querySelectorAll(".screening-card")[
-        index
-      ] as HTMLElement;
-      if (cardElement) {
-        const navbarHeight = 26;
-        const cardRect = cardElement.getBoundingClientRect();
-        const scrollPosition =
-          window.scrollY +
-          cardRect.top -
-          (window.innerHeight / 2 - cardRect.height / 2) -
-          navbarHeight;
-
-        window.scrollTo({
-          top: scrollPosition,
-          behavior: "smooth",
-        });
-      }
-    });
+const handleDialogVisibleForFinishScreening = () => {
+  if (state.value.post) {
+    if (isAllFeedbackTrue()) {
+      readyToStartPostReview.value = true;
+    } else {
+      completeScreeningBeforePostReview.value = true;
+    }
+  } else {
+    if (isAllFeedbackTrue()) {
+      confirmToFinishYourScreening.value = true;
+    } else {
+      unableToFinishScreening.value = true;
+    }
   }
 };
 
-const pre = ref(reviewerStore.pre);
-const co = ref(reviewerStore.co);
-const post = ref(reviewerStore.post);
-const high = ref(reviewerStore.level === "high");
+const updateReviewProgress = async (
+  action: "pause" | "finish" | "post_review"
+) => {
+  try {
+    setLoading(true);
 
-function updateRole(role: "pre" | "co" | "post") {
-  const reviewer = reviewerStore;
+    const body = {
+      review_id: route.params.id,
+      action,
+    };
 
-  if (role === "pre") {
-    reviewer.pre = pre.value;
-  } else if (role === "co") {
-    reviewer.co = co.value;
-  } else {
-    reviewer.post = post.value;
+    await axios.post("/review/review_progress", body, getTokenHeader());
+
+    if (action === "pause") {
+      router.push({ name: "paused", params: { id: route.params.id } });
+    } else if (action === "post_review") {
+      router.push({ name: "post-review", params: { id: route.params.id } });
+    } else {
+      router.push({ name: "summary", params: { id: route.params.id } });
+    }
+  } catch (error: unknown) {
+    setLoading(false);
+    console.error(error);
+
+    if (error instanceof AxiosError) {
+      const e = getResponseErrorMessage(error);
+      showToast("error", "Cannot Update Progress", e.message);
+    } else if (error instanceof Error) {
+      showToast("error", "Cannot Update Progress", error.message);
+    } else {
+      showToast("error", "Cannot Update Progress", "An unknown error occurred");
+    }
   }
+};
 
-  storeReviewer(reviewer);
-}
+onMounted(async () => {
+  try {
+    setLoading(true);
+    await getStudies();
+  } catch (error: unknown) {
+    console.error(error);
 
-function updateLevel() {
-  const reviewer = reviewerStore;
-
-  if (high.value) {
-    reviewer.level = "high";
-  } else {
-    reviewer.level = "low";
+    if (error instanceof AxiosError) {
+      const e = getResponseErrorMessage(error);
+      showToast("error", "Cannot Fetch Stufies", e.message);
+    } else if (error instanceof Error) {
+      showToast("error", "Cannot Fetch Stufies", error.message);
+    } else {
+      showToast("error", "Cannot Fetch Stufies", "An unknown error occurred");
+    }
+  } finally {
+    setLoading(false);
   }
-
-  storeReviewer(reviewer);
-}
-
-function updateVisibleChat(visible: boolean) {
-  const reviewer = reviewerStore;
-
-  visibleChat.value = visible;
-  reviewer.visibleChat = visible;
-
-  storeReviewer(reviewer);
-}
-
-onMounted(() => {
-  // console.log(reviewerStore);
 });
 </script>

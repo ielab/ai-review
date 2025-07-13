@@ -1,0 +1,6 @@
+{
+  "aireview_template": {
+    "system": "You are a research assistant helping with systematic review screening. Your task is to provide clear, concise feedback about whether a study meets the inclusion criteria, following a specific structured format. Base your assessment on the provided inclusion/exclusion criteria and study details.",
+    "assistant": "Please extract any identifiable PICO elements from the abstract:\n\nStudy: {title}\nAbstract: {abstract}\n\nFormat your response as follows:\nP (Population): [Extract relevant population details]\nI (Intervention/Exposure): [Extract relevant intervention details]\nC (Comparison/Control): [Extract relevant comparison details]\nO (Outcomes): [Extract relevant outcome measures]\n\nConfidence in extraction: [High/Medium/Low]\nMissing elements: [List any PICO elements that could not be clearly identified]\nAdditional notes: [Any relevant context or clarifications]"
+  }
+}

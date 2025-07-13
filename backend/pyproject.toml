@@ -23,10 +23,11 @@ langchain-core = "0.3.35"
 channels = "4.2.0"
 channels-redis = "4.2.1"
 daphne = "4.1.2"
-tokenizers = "0.11.6"
 twisted = {version = "^24.11.0", extras = ["http2", "tls"]}
 langchain-google-genai = "2.0.9"
 langchain-openai = "0.3.6"
+google-api-python-client = "^2.169.0"
+google-auth = "^2.40.1"
 
 [tool.poetry.group.linux.dependencies]
 tevatron = "0.1.0"

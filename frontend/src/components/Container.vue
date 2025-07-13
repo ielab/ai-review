@@ -1,5 +1,5 @@
 <template>
-  <div class="tw-flex tw-w-full tw-min-h-[86vh]">
+  <div class="tw-flex tw-w-full tw-h-full">
     <div
       v-if="icon && title"
       class="tw-flex tw-flex-col tw-px-24 tw-py-8 tw-bg-primary-50 tw-gap-y-2"

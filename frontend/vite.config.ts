@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 
 // https://vitejs.dev/config/
 export default () => {
@@ -9,20 +9,21 @@ export default () => {
     plugins: [vue()],
     resolve: {
       alias: {
-        '@': '/src',
+        "@": "/src",
       },
     },
     server: {
       proxy: {
-        '/api': {
-          target: 'http://localhost:8000',
+        "/api": {
+          target: "https://aireview.ielab.io/api",
+          // target: "http://localhost:8000/",
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (path) => path.replace(/^\/api/, ""),
         },
       },
     },
     build: {
       emptyOutDir: true,
     },
-  })
-}
+  });
+};

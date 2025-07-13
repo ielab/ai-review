@@ -23,14 +23,13 @@
         </div>
       </template>
       <div class="tw-flex">
-        <span class="tw-px-3">
-          <h2>{{ title }}</h2>
-          <div class="tw-font-bold tw-text-violet-600 tw-text-lg tw-break-all">
-            <slot name="value"></slot>
-          </div>
-          <p></p>
+        <span class="tw-px-3 tw-flex tw-flex-col tw-gap-2">
+          <h2 v-if="!title"><slot name="title"></slot></h2>
+
+          <h2 v-else>{{ title }}</h2>
+
           <slot name="body"></slot>
-          <p></p>
+
           <div>
             <slot name="note"></slot>
           </div>
@@ -39,25 +38,30 @@
       <template #footer>
         <Button
           v-if="leftBtn"
-          type="light"
+          outlined
           :label="leftBtn"
           severity="secondary"
           @click="handleClose"
         />
-        <Button v-if="rightBtn" :label="rightBtn" :severity="severity" @click="handleConfirm" />
+        <Button
+          v-if="rightBtn"
+          :label="rightBtn"
+          :severity="severity"
+          @click="handleConfirm"
+        />
       </template>
     </Dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed } from "vue";
 
-import Dialog from 'primevue/dialog'
-import Button from '@/components/Button.vue'
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
 
-import { useRouter } from 'vue-router'
-const router = useRouter()
+import { useRouter } from "vue-router";
+const router = useRouter();
 
 const props = defineProps({
   isActive: { type: Boolean, default: false },
@@ -69,25 +73,25 @@ const props = defineProps({
   iconColor: { type: String },
   route: { type: String },
   severity: { type: String },
-})
+});
 
-const emit = defineEmits(['update:isActive', 'confirm', 'close'])
+const emit = defineEmits(["update:isActive", "confirm", "close"]);
 const visible = computed({
   get() {
-    return props.isActive
+    return props.isActive;
   },
   set(value) {
-    emit('update:isActive', value)
+    emit("update:isActive", value);
   },
-})
+});
 
 function handleClose() {
-  visible.value = false
+  visible.value = false;
 }
 
 function handleConfirm() {
-  visible.value = false
-  router.push({ name: props.route })
-  emit('confirm', true)
+  visible.value = false;
+  router.push({ name: props.route });
+  emit("confirm", true);
 }
 </script>
